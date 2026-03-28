@@ -18,6 +18,10 @@ All API routes are prefixed with `/api/`.
 - `POST /api/cart/items/` Add or update a cart item.
 - `POST /api/checkout/` Submit the cart for checkout.
 
+## Admin Analytics
+
+Staff users can review sales analytics from the Django admin panel at `/admin/analytics/`.
+
 ## Database Configuration
 
 The app uses SQLite in development. Set `DEBUG=True` locally to keep SQLite. When `DEBUG` is `False` and PostgreSQL environment variables are provided, the app connects to PostgreSQL:
