@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import admin
-from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum, Count
 from django.template.response import TemplateResponse
 
 from .models import Order, OrderItem
@@ -56,17 +56,27 @@ class OrderItemAdmin(admin.ModelAdmin):
     line_total.short_description = "Line total"
 
 
+@admin.site.admin_view
 def analytics_view(request):
     submitted_orders = Order.objects.filter(status=Order.STATUS_SUBMITTED)
-    submitted_items = OrderItem.objects.filter(order__status=Order.STATUS_SUBMITTED)
     revenue_expression = ExpressionWrapper(
         F("unit_price") * F("quantity"),
         output_field=DecimalField(max_digits=12, decimal_places=2),
     )
-    total_revenue = submitted_items.aggregate(total=Sum(revenue_expression))["total"] or Decimal("0.00")
-    total_orders = submitted_orders.count()
-    total_items_sold = submitted_items.aggregate(total=Sum("quantity"))["total"] or 0
-    active_carts = Order.objects.filter(status=Order.STATUS_CART).count()
+    order_counts = Order.objects.aggregate(
+        total_orders=Count("id", filter=Q(status=Order.STATUS_SUBMITTED)),
+        active_carts=Count("id", filter=Q(status=Order.STATUS_CART)),
+    )
+    submitted_items = OrderItem.objects.filter(order__status=Order.STATUS_SUBMITTED)
+    item_totals = submitted_items.aggregate(
+        total_revenue=Sum(revenue_expression),
+        total_items_sold=Sum("quantity"),
+    )
+
+    total_revenue = item_totals["total_revenue"] or Decimal("0.00")
+    total_orders = order_counts["total_orders"] or 0
+    total_items_sold = item_totals["total_items_sold"] or 0
+    active_carts = order_counts["active_carts"] or 0
     average_order_value = total_revenue / total_orders if total_orders else Decimal("0.00")
 
     context = {

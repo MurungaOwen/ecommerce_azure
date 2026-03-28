@@ -22,7 +22,7 @@ from django.urls import include, path
 from orders.admin import analytics_view
 
 urlpatterns = [
-    path('admin/analytics/', admin.site.admin_view(analytics_view), name='admin-analytics'),
+    path('admin/analytics/', analytics_view, name='admin-analytics'),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/', include('products.urls')),
