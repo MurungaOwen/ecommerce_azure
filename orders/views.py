@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -62,16 +63,41 @@ class CheckoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        cart = Order.objects.filter(user=request.user, status=Order.STATUS_CART).first()
-        if not cart:
-            return Response({'detail': 'No active cart found.'}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            cart = (
+                Order.objects.select_for_update()
+                .filter(user=request.user, status=Order.STATUS_CART)
+                .first()
+            )
+            if not cart:
+                return Response({'detail': 'No active cart found.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not cart.items.exists():
-            return Response({'detail': 'Cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
+            items = list(cart.items.select_related('product'))
+            if not items:
+                return Response({'detail': 'Cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        cart.status = Order.STATUS_SUBMITTED
-        cart.checked_out_at = timezone.now()
-        cart.save(update_fields=['status', 'checked_out_at', 'updated_at'])
+            products = Product.objects.select_for_update().filter(
+                id__in=[item.product_id for item in items]
+            )
+            product_map = {product.id: product for product in products}
+
+            for item in items:
+                product = product_map[item.product_id]
+                if item.quantity > product.stock:
+                    return Response(
+                        {'detail': f'Insufficient stock for {product.name}.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            for item in items:
+                product = product_map[item.product_id]
+                product.stock -= item.quantity
+                product.save(update_fields=['stock'])
+
+            cart.status = Order.STATUS_SUBMITTED
+            cart.checked_out_at = timezone.now()
+            cart.save(update_fields=['status', 'checked_out_at'])
+
         serializer = OrderSerializer(cart)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
