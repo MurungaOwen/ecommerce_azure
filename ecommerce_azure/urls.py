@@ -27,7 +27,11 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/', include('products.urls')),
     path('api/', include('orders.urls')),
+    path('api/analytics/', include('analytics.urls')),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    media_root = getattr(settings, 'MEDIA_ROOT', None)
+    if media_root:
+        urlpatterns += static(settings.MEDIA_URL, document_root=media_root)

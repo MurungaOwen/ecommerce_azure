@@ -18,9 +18,13 @@ All API routes are prefixed with `/api/`.
 - `POST /api/cart/items/` Add or update a cart item.
 - `POST /api/checkout/` Submit the cart for checkout.
 
-## Admin Analytics
+### Payments
+- `POST /api/payments/paystack/initialize/` Start a Paystack payment for a pending order.
+- `POST /api/payments/paystack/verify/` Verify a Paystack payment and finalize the order on success.
+- `POST /api/payments/mpesa/stk-push/` Start an M-Pesa STK push for a pending order.
+- `POST /api/payments/mpesa/callback/` Receive the M-Pesa callback and finalize the order on success.
 
-Staff users can review sales analytics from the Django admin panel at `/admin/analytics/`.
+Payment provider is set automatically based on the endpoint used (Paystack or M-Pesa), so clients do not send a provider value in the request.
 
 ## Database Configuration
 

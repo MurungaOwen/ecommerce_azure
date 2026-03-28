@@ -15,3 +15,5 @@ class ProductEndpointTests(APITestCase):
         response = self.client.get(reverse('product-list'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['id'], product.id)
+        self.assertIn('image', response.data[0])
+        self.assertIsNone(response.data[0]['image'])

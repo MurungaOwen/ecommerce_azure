@@ -44,9 +44,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'storages',
     'users',
     'products',
     'orders',
+    'analytics',
 ]
 
 MIDDLEWARE = [
@@ -147,9 +149,37 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_files')
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
+AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
+AZURE_CONTAINER = os.getenv('AZURE_CONTAINER', 'media')
+AZURE_CUSTOM_DOMAIN = os.getenv('AZURE_CUSTOM_DOMAIN')
+AZURE_OVERWRITE_FILES = False
+
+USE_AZURE_STORAGE = all([AZURE_ACCOUNT_NAME, AZURE_ACCOUNT_KEY, AZURE_CONTAINER])
+
+PAYSTACK_AUTH_BASE_URL = os.getenv('PAYSTACK_AUTH_BASE_URL', 'https://checkout.paystack.com')
+PAYSTACK_CALLBACK_URL = os.getenv('PAYSTACK_CALLBACK_URL')
+PAYSTACK_CURRENCY = os.getenv('PAYSTACK_CURRENCY', 'KES')
+
+MPESA_CALLBACK_URL = os.getenv('MPESA_CALLBACK_URL')
+MPESA_CURRENCY = os.getenv('MPESA_CURRENCY', 'KES')
+
+if USE_AZURE_STORAGE:
+    if AZURE_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{AZURE_CUSTOM_DOMAIN}/{AZURE_CONTAINER}/"
+    else:
+        MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/"
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': (
+            'storages.backends.azure_storage.AzureStorage'
+            if USE_AZURE_STORAGE
+            else 'django.core.files.storage.FileSystemStorage'
+        ),
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',

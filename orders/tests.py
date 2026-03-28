@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
+from analytics.models import CheckoutEvent
 from products.models import Product
 from .models import Order, OrderItem
 
@@ -40,50 +41,51 @@ class CheckoutFlowTests(APITestCase):
 
         checkout_response = self.client.post(reverse('checkout'), format='json')
         self.assertEqual(checkout_response.status_code, 200)
-        self.assertEqual(checkout_response.data['status'], 'submitted')
+        self.assertEqual(checkout_response.data['status'], 'payment_pending')
+        self.assertEqual(checkout_response.data['payment_status'], 'pending')
 
-
-@override_settings(
-    STORAGES={
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        }
-    }
-)
-class AdminAnalyticsViewTests(TestCase):
-    def test_admin_analytics_summary(self):
-        admin_user = User.objects.create_superuser(
-            username='admin',
-            password='strongpassword',
-            email='admin@example.com',
+        paystack_init = self.client.post(
+            reverse('paystack-init'),
+            {'order_id': checkout_response.data['id']},
+            format='json',
         )
-        buyer = User.objects.create_user(username='buyer', password='strongpassword')
+        self.assertEqual(paystack_init.status_code, 200)
+        paystack_verify = self.client.post(
+            reverse('paystack-verify'),
+            {'reference': paystack_init.data['reference'], 'status': 'success'},
+            format='json',
+        )
+        self.assertEqual(paystack_verify.status_code, 200)
+        self.assertEqual(paystack_verify.data['status'], 'submitted')
+        self.assertEqual(paystack_verify.data['payment_status'], 'paid')
+        product.refresh_from_db()
+        self.assertEqual(product.stock, 3)
+        self.assertTrue(CheckoutEvent.objects.filter(order_id=checkout_response.data['id']).exists())
+
+    def test_mpesa_stk_push_flow(self):
+        user = User.objects.create_user(username='mpesa-buyer', password='strongpassword')
         product = Product.objects.create(
-            name='Mug',
-            description='Ceramic mug',
-            price=Decimal('5.00'),
-            stock=10,
+            name='Sugar',
+            description='Raw sugar',
+            price='5.00',
+            stock=4,
         )
-        submitted_order = Order.objects.create(
-            user=buyer,
-            status=Order.STATUS_SUBMITTED,
-            checked_out_at=timezone.now(),
+        self.client.force_authenticate(user=user)
+        self.client.post(
+            reverse('cart-items'),
+            {'product_id': product.id, 'quantity': 1},
+            format='json',
         )
-        OrderItem.objects.create(
-            order=submitted_order,
-            product=product,
-            quantity=2,
-            unit_price=Decimal('5.00'),
+        checkout_response = self.client.post(reverse('checkout'), format='json')
+        mpesa_init = self.client.post(
+            reverse('mpesa-stk-push'),
+            {'order_id': checkout_response.data['id'], 'phone_number': '254700000000'},
+            format='json',
         )
-        Order.objects.create(user=buyer, status=Order.STATUS_CART)
-
-        self.client.force_login(admin_user)
-        response = self.client.get(reverse('admin-analytics'))
-        self.assertEqual(response.status_code, 200)
-
-        analytics = response.context['analytics']
-        self.assertEqual(analytics['total_orders'], 1)
-        self.assertEqual(analytics['active_carts'], 1)
-        self.assertEqual(analytics['total_items_sold'], 2)
-        self.assertEqual(analytics['total_revenue'], Decimal('10.00'))
-        self.assertEqual(analytics['average_order_value'], Decimal('10.00'))
+        callback_response = self.client.post(
+            reverse('mpesa-callback'),
+            {'checkout_request_id': mpesa_init.data['checkout_request_id'], 'result_code': 0},
+            format='json',
+        )
+        self.assertEqual(callback_response.status_code, 200)
+        self.assertEqual(callback_response.data['payment_status'], 'paid')
