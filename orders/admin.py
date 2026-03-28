@@ -58,7 +58,6 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 @admin.site.admin_view
 def analytics_view(request):
-    submitted_orders = Order.objects.filter(status=Order.STATUS_SUBMITTED)
     revenue_expression = ExpressionWrapper(
         F("unit_price") * F("quantity"),
         output_field=DecimalField(max_digits=12, decimal_places=2),
