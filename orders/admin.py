@@ -25,22 +25,21 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderItemInline]
     actions = ['mark_processing', 'mark_completed', 'mark_cancelled']
 
+    @admin.action(description='Mark selected paid orders as processing')
     def mark_processing(self, request, queryset):
         queryset.filter(payment_status=Order.PAYMENT_PAID).update(
             fulfillment_status=Order.FULFILLMENT_PROCESSING
         )
 
+    @admin.action(description='Mark selected paid orders as completed')
     def mark_completed(self, request, queryset):
         queryset.filter(payment_status=Order.PAYMENT_PAID).update(
             fulfillment_status=Order.FULFILLMENT_COMPLETED
         )
 
+    @admin.action(description='Mark selected orders as cancelled')
     def mark_cancelled(self, request, queryset):
         queryset.update(fulfillment_status=Order.FULFILLMENT_CANCELLED)
-
-    mark_processing.short_description = 'Mark selected paid orders as processing'
-    mark_completed.short_description = 'Mark selected paid orders as completed'
-    mark_cancelled.short_description = 'Mark selected orders as cancelled'
 
 
 @admin.register(OrderItem)
