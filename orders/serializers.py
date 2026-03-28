@@ -59,10 +59,6 @@ class CartItemCreateSerializer(serializers.Serializer):
         return value
 
 
-class CheckoutRequestSerializer(serializers.Serializer):
-    order_id = serializers.IntegerField(required=False)
-
-
 class PaystackInitializeSerializer(serializers.Serializer):
     order_id = serializers.IntegerField()
 
