@@ -59,3 +59,6 @@ class CheckoutAnalyticsTests(APITestCase):
         self.assertEqual(analytics_response.data['orders']['payment_status']['paid'], 1)
         self.assertEqual(analytics_response.data['orders']['payment_status']['failed'], 0)
         self.assertEqual(analytics_response.data['orders']['fulfillment_status']['pending'], 1)
+        self.assertEqual(analytics_response.data['orders']['fulfillment_status']['processing'], 0)
+        self.assertEqual(analytics_response.data['orders']['fulfillment_status']['completed'], 0)
+        self.assertEqual(analytics_response.data['orders']['fulfillment_status']['cancelled'], 0)
