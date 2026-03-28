@@ -24,9 +24,13 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = 'django-insecure-z02)^x6-k&c7hd2ei&$*p8(e=(_w&zd219)a%m3@z&9a9v7(*r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', True)
+DEBUG = os.getenv('DEBUG', 'false').lower() in {'true', '1', 'yes'}
 
-ALLOWED_HOSTS = ["*"] if DEBUG else os.getenv('ALLOWED_HOSTS')
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+else:
+    raw_hosts = os.getenv('ALLOWED_HOSTS', '')
+    ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(',') if host.strip()]
 
 
 # Application definition
@@ -38,6 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'users',
+    'products',
+    'orders',
 ]
 
 MIDDLEWARE = [
@@ -74,12 +83,30 @@ WSGI_APPLICATION = 'ecommerce_azure.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+use_postgres = not DEBUG and (
+    os.getenv('POSTGRES_DB')
+    or os.getenv('POSTGRES_HOST')
+    or os.getenv('POSTGRES_USER')
+)
+
+if not use_postgres:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'postgres'),
+            'USER': os.getenv('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        }
+    }
 
 
 # Password validation
@@ -133,3 +160,13 @@ STORAGES = {
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}

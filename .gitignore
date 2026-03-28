@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+db.sqlite3
+static_files/*
+!static_files/.gitkeep
+.env
