@@ -1,4 +1,6 @@
 django
+psycopg2-binary==2.9.9
+djangorestframework==3.15.2
 gunicorn
 whitenoise
 python-dotenv
