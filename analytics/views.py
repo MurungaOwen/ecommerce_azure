@@ -16,7 +16,7 @@ from .serializers import CheckoutEventSerializer
 User = get_user_model()
 
 
-class CheckoutAnalyticsView(APIView):
+class AnalyticsOverviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
