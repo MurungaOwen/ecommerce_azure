@@ -1,9 +1,9 @@
 from decimal import Decimal
 
 from django.contrib import admin
+from django.core.exceptions import PermissionDenied
 from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 from django.template.response import TemplateResponse
-from django.urls import path
 
 from .models import Order, OrderItem
 
@@ -60,6 +60,8 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 
 def analytics_view(request):
+    if not request.user.is_active or not request.user.is_staff:
+        raise PermissionDenied
     submitted_orders = Order.objects.filter(status=Order.STATUS_SUBMITTED)
     submitted_items = OrderItem.objects.filter(order__status=Order.STATUS_SUBMITTED)
     revenue_expression = ExpressionWrapper(
@@ -84,16 +86,3 @@ def analytics_view(request):
         },
     }
     return TemplateResponse(request, "admin/analytics.html", context)
-
-
-original_get_urls = admin.site.get_urls
-
-
-def get_urls():
-    custom_urls = [
-        path("analytics/", admin.site.admin_view(analytics_view), name="analytics"),
-    ]
-    return custom_urls + original_get_urls()
-
-
-admin.site.get_urls = get_urls

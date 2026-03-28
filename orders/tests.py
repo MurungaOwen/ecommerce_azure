@@ -1,7 +1,8 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -77,7 +78,7 @@ class AdminAnalyticsViewTests(TestCase):
         Order.objects.create(user=buyer, status=Order.STATUS_CART)
 
         self.client.force_login(admin_user)
-        response = self.client.get(reverse('admin:analytics'))
+        response = self.client.get(reverse('admin-analytics'))
         self.assertEqual(response.status_code, 200)
 
         analytics = response.context['analytics']
