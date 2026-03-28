@@ -28,6 +28,17 @@ class CheckoutAnalyticsTests(APITestCase):
         checkout_response = self.client.post(reverse('checkout'), format='json')
         order_id = checkout_response.data['id']
 
+        paystack_init = self.client.post(
+            reverse('paystack-init'),
+            {'order_id': order_id},
+            format='json',
+        )
+        self.client.post(
+            reverse('paystack-verify'),
+            {'reference': paystack_init.data['reference'], 'status': 'success'},
+            format='json',
+        )
+
         analytics_response = self.client.get(reverse('checkout-analytics'))
         self.assertEqual(analytics_response.status_code, 200)
         summary = analytics_response.data['summary']
