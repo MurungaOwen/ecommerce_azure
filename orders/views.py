@@ -1,19 +1,40 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from products.models import Product
 
-from .models import Order, OrderItem
-from .serializers import CartItemCreateSerializer, OrderSerializer
+from .models import Order, OrderItem, Payment
+from .services import (
+    finalize_paid_order,
+    initiate_mpesa_stk_push,
+    initiate_paystack_payment,
+    mark_payment_failed,
+)
+from .serializers import (
+    CartItemCreateSerializer,
+    MpesaCallbackSerializer,
+    MpesaStkPushSerializer,
+    OrderSerializer,
+    PaystackInitializeSerializer,
+    PaystackVerifySerializer,
+)
 
 
 def get_or_create_cart(user):
     cart, _ = Order.objects.get_or_create(user=user, status=Order.STATUS_CART)
     return cart
+
+
+def get_payment_order(user, order_id):
+    return get_object_or_404(
+        Order,
+        pk=order_id,
+        user=user,
+        status=Order.STATUS_PAYMENT_PENDING,
+    )
 
 
 class CartView(APIView):
@@ -89,16 +110,117 @@ class CheckoutView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            for item in items:
-                product = product_map[item.product_id]
-                product.stock -= item.quantity
-                product.save(update_fields=['stock'])
-
-            cart.status = Order.STATUS_SUBMITTED
-            cart.checked_out_at = timezone.now()
-            cart.save(update_fields=['status', 'checked_out_at'])
+            cart.status = Order.STATUS_PAYMENT_PENDING
+            cart.payment_status = Order.PAYMENT_PENDING
+            cart.save(update_fields=['status', 'payment_status'])
 
         serializer = OrderSerializer(cart)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PaystackInitializeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = PaystackInitializeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = get_payment_order(request.user, serializer.validated_data['order_id'])
+
+        payment = initiate_paystack_payment(order, request.user)
+        return Response(
+            {
+                'order_id': order.id,
+                'reference': payment.reference,
+                'amount': str(payment.amount),
+                'currency': payment.currency,
+                'authorization_url': payment.metadata.get('authorization_url'),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PaystackVerifyView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = PaystackVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payment = get_object_or_404(
+            Payment,
+            reference=serializer.validated_data['reference'],
+            provider=Payment.PROVIDER_PAYSTACK,
+            user=request.user,
+        )
+
+        verification_status = serializer.validated_data.get('status', 'success')
+        if verification_status == 'failed':
+            payment.status = Payment.STATUS_FAILED
+            payment.save(update_fields=['status'])
+            mark_payment_failed(payment.order)
+            return Response({'detail': 'Payment failed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment.status = Payment.STATUS_SUCCEEDED
+        payment.save(update_fields=['status'])
+        try:
+            order = finalize_paid_order(payment.order)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = OrderSerializer(order)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MpesaStkPushView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = MpesaStkPushSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = get_payment_order(request.user, serializer.validated_data['order_id'])
+        payment = initiate_mpesa_stk_push(order, request.user, serializer.validated_data['phone_number'])
+        return Response(
+            {
+                'order_id': order.id,
+                'reference': payment.reference,
+                'amount': str(payment.amount),
+                'currency': payment.currency,
+                'checkout_request_id': payment.metadata.get('checkout_request_id'),
+                'merchant_request_id': payment.metadata.get('merchant_request_id'),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MpesaCallbackView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = MpesaCallbackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payment = get_object_or_404(
+            Payment,
+            provider=Payment.PROVIDER_MPESA,
+            provider_reference=serializer.validated_data['checkout_request_id'],
+        )
+        result_code = serializer.validated_data['result_code']
+        payment.metadata.update(
+            {
+                'result_code': result_code,
+                'result_desc': serializer.validated_data.get('result_desc'),
+            }
+        )
+        if result_code == 0:
+            payment.status = Payment.STATUS_SUCCEEDED
+            payment.save(update_fields=['status', 'metadata'])
+            try:
+                order = finalize_paid_order(payment.order)
+            except ValueError as exc:
+                return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = OrderSerializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        payment.status = Payment.STATUS_FAILED
+        payment.save(update_fields=['status', 'metadata'])
+        mark_payment_failed(payment.order)
+        return Response({'detail': 'Payment failed.'}, status=status.HTTP_400_BAD_REQUEST)
 
 # Create your views here.

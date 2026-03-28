@@ -26,7 +26,18 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('id', 'status', 'items', 'total', 'created_at', 'updated_at', 'checked_out_at')
+        fields = (
+            'id',
+            'status',
+            'payment_status',
+            'fulfillment_status',
+            'items',
+            'total',
+            'created_at',
+            'updated_at',
+            'checked_out_at',
+            'paid_at',
+        )
 
     def get_total(self, obj):
         total = Decimal('0.00')
@@ -46,3 +57,23 @@ class CartItemCreateSerializer(serializers.Serializer):
         if not Product.objects.filter(pk=value, is_active=True).exists():
             raise serializers.ValidationError('Product not found.')
         return value
+
+
+class PaystackInitializeSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+
+
+class PaystackVerifySerializer(serializers.Serializer):
+    reference = serializers.CharField()
+    status = serializers.ChoiceField(choices=['success', 'failed'], required=False)
+
+
+class MpesaStkPushSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    phone_number = serializers.CharField()
+
+
+class MpesaCallbackSerializer(serializers.Serializer):
+    checkout_request_id = serializers.CharField()
+    result_code = serializers.IntegerField()
+    result_desc = serializers.CharField(required=False, allow_blank=True)
