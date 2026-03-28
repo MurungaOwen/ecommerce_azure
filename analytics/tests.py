@@ -1,16 +1,40 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from products.models import Product
+from orders.models import Payment
 
 User = get_user_model()
 
 
 class CheckoutAnalyticsTests(APITestCase):
-    def test_checkout_analytics_summary(self):
+    @patch('orders.views.verify_paystack_payment')
+    @patch('orders.views.initiate_paystack_payment')
+    def test_checkout_analytics_summary(self, mock_initiate_paystack_payment, mock_verify_paystack_payment):
+        def mocked_init(order, user):
+            return Payment.objects.create(
+                order=order,
+                user=user,
+                provider=Payment.PROVIDER_PAYSTACK,
+                reference='paystack_analytics_reference',
+                amount='16.00',
+                currency='KES',
+                metadata={'authorization_url': 'https://checkout.paystack.com/test'},
+            )
+
+        mock_initiate_paystack_payment.side_effect = mocked_init
+        mock_verify_paystack_payment.return_value = {
+            'status': 'success',
+            'amount': 1600,
+            'currency': 'KES',
+            'id': 555001,
+            'reference': 'paystack_analytics_reference',
+        }
+
         user = User.objects.create_user(username='analytics-user', password='strongpassword')
         product = Product.objects.create(
             name='Green Tea',
@@ -35,7 +59,7 @@ class CheckoutAnalyticsTests(APITestCase):
         )
         self.client.post(
             reverse('paystack-verify'),
-            {'reference': paystack_init.data['reference'], 'status': 'success'},
+            {'reference': paystack_init.data['reference']},
             format='json',
         )
 

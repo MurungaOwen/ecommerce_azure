@@ -1,21 +1,45 @@
 from decimal import Decimal
+import hashlib
+import hmac
+import json
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from analytics.models import CheckoutEvent
 from products.models import Product
-from .models import Order, OrderItem
+from .models import Order, Payment
 
 User = get_user_model()
 
 
 class CheckoutFlowTests(APITestCase):
-    def test_add_to_cart_and_checkout(self):
+    @patch('orders.views.verify_paystack_payment')
+    @patch('orders.views.initiate_paystack_payment')
+    def test_add_to_cart_and_checkout(self, mock_initiate_paystack_payment, mock_verify_paystack_payment):
+        def mocked_init(order, user):
+            return Payment.objects.create(
+                order=order,
+                user=user,
+                provider=Payment.PROVIDER_PAYSTACK,
+                reference='paystack_test_reference',
+                amount='16.00',
+                currency='KES',
+                metadata={'authorization_url': 'https://checkout.paystack.com/test'},
+            )
+
+        mock_initiate_paystack_payment.side_effect = mocked_init
+        mock_verify_paystack_payment.return_value = {
+            'status': 'success',
+            'amount': 1600,
+            'currency': 'KES',
+            'id': 123456,
+            'reference': 'paystack_test_reference',
+        }
+
         user = User.objects.create_user(username='buyer', password='strongpassword')
         product = Product.objects.create(
             name='Tea',
@@ -52,7 +76,7 @@ class CheckoutFlowTests(APITestCase):
         self.assertEqual(paystack_init.status_code, 200)
         paystack_verify = self.client.post(
             reverse('paystack-verify'),
-            {'reference': paystack_init.data['reference'], 'status': 'success'},
+            {'reference': paystack_init.data['reference']},
             format='json',
         )
         self.assertEqual(paystack_verify.status_code, 200)
@@ -89,3 +113,65 @@ class CheckoutFlowTests(APITestCase):
         )
         self.assertEqual(callback_response.status_code, 200)
         self.assertEqual(callback_response.data['payment_status'], 'paid')
+
+    @override_settings(PAYSTACK_SECRET_KEY='test_secret')
+    def test_paystack_webhook_marks_payment_paid(self):
+        user = User.objects.create_user(
+            username='paystack-webhook-user',
+            email='buyer@example.com',
+            password='strongpassword',
+        )
+        product = Product.objects.create(
+            name='Coffee',
+            description='Ground coffee',
+            price='10.00',
+            stock=10,
+        )
+        self.client.force_authenticate(user=user)
+        self.client.post(
+            reverse('cart-items'),
+            {'product_id': product.id, 'quantity': 2},
+            format='json',
+        )
+        checkout_response = self.client.post(reverse('checkout'), format='json')
+        order = Order.objects.get(pk=checkout_response.data['id'])
+        Payment.objects.create(
+            order=order,
+            user=user,
+            provider=Payment.PROVIDER_PAYSTACK,
+            reference='paystack_webhook_ref',
+            amount='20.00',
+            currency='KES',
+            status=Payment.STATUS_PENDING,
+        )
+
+        payload = {
+            'event': 'charge.success',
+            'data': {
+                'id': 88001,
+                'reference': 'paystack_webhook_ref',
+                'amount': 2000,
+                'currency': 'KES',
+            },
+        }
+        body = json.dumps(payload).encode('utf-8')
+        signature = hmac.new(
+            b'test_secret',
+            body,
+            hashlib.sha512,
+        ).hexdigest()
+
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            reverse('paystack-webhook'),
+            data=body,
+            content_type='application/json',
+            HTTP_X_PAYSTACK_SIGNATURE=signature,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        product.refresh_from_db()
+        self.assertEqual(order.payment_status, Order.PAYMENT_PAID)
+        self.assertEqual(order.status, Order.STATUS_SUBMITTED)
+        self.assertEqual(product.stock, 8)

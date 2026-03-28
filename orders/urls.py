@@ -8,6 +8,7 @@ from .views import (
     MpesaStkPushView,
     PaystackInitializeView,
     PaystackVerifyView,
+    PaystackWebhookView,
 )
 
 urlpatterns = [
@@ -16,6 +17,7 @@ urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
     path('payments/paystack/initialize/', PaystackInitializeView.as_view(), name='paystack-init'),
     path('payments/paystack/verify/', PaystackVerifyView.as_view(), name='paystack-verify'),
+    path('payments/paystack/webhook/', PaystackWebhookView.as_view(), name='paystack-webhook'),
     path('payments/mpesa/stk-push/', MpesaStkPushView.as_view(), name='mpesa-stk-push'),
     path('payments/mpesa/callback/', MpesaCallbackView.as_view(), name='mpesa-callback'),
 ]

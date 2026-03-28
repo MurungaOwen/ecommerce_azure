@@ -65,7 +65,6 @@ class PaystackInitializeSerializer(serializers.Serializer):
 
 class PaystackVerifySerializer(serializers.Serializer):
     reference = serializers.CharField()
-    status = serializers.ChoiceField(choices=['success', 'failed'], required=False)
 
 
 class MpesaStkPushSerializer(serializers.Serializer):

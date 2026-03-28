@@ -1,3 +1,9 @@
+import hashlib
+import hmac
+import json
+from decimal import Decimal
+
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
@@ -12,6 +18,8 @@ from .services import (
     initiate_mpesa_stk_push,
     initiate_paystack_payment,
     mark_payment_failed,
+    verify_paystack_payment,
+    PaystackError,
 )
 from .serializers import (
     CartItemCreateSerializer,
@@ -126,7 +134,10 @@ class PaystackInitializeView(APIView):
         serializer.is_valid(raise_exception=True)
         order = get_payment_order(request.user, serializer.validated_data['order_id'])
 
-        payment = initiate_paystack_payment(order, request.user)
+        try:
+            payment = initiate_paystack_payment(order, request.user)
+        except PaystackError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response(
             {
                 'order_id': order.id,
@@ -152,15 +163,103 @@ class PaystackVerifyView(APIView):
             user=request.user,
         )
 
-        verification_status = serializer.validated_data.get('status', 'success')
-        if verification_status == 'failed':
-            payment.status = Payment.STATUS_FAILED
-            payment.save(update_fields=['status'])
-            mark_payment_failed(payment.order)
-            return Response({'detail': 'Payment failed.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            verification = verify_paystack_payment(payment.reference)
+        except PaystackError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
+        gateway_status = verification.get('status')
+        gateway_amount = verification.get('amount')
+        gateway_currency = (verification.get('currency') or '').upper()
+
+        expected_amount = int((payment.amount * Decimal('100')).quantize(Decimal('1')))
+        expected_currency = payment.currency.upper()
+        if gateway_amount != expected_amount or gateway_currency != expected_currency:
+            payment.status = Payment.STATUS_FAILED
+            payment.metadata.update({'verification': verification, 'verification_error': 'Amount/currency mismatch'})
+            payment.save(update_fields=['status', 'metadata'])
+            mark_payment_failed(payment.order)
+            return Response({'detail': 'Payment verification mismatch.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if gateway_status != 'success':
+            payment.metadata.update({'verification': verification})
+            if gateway_status in {'failed', 'abandoned', 'reversed'}:
+                payment.status = Payment.STATUS_FAILED
+                payment.save(update_fields=['status', 'metadata'])
+                mark_payment_failed(payment.order)
+                return Response({'detail': 'Payment failed.'}, status=status.HTTP_400_BAD_REQUEST)
+            payment.status = Payment.STATUS_PENDING
+            payment.save(update_fields=['status', 'metadata'])
+            return Response({'detail': f'Payment status: {gateway_status}.'}, status=status.HTTP_202_ACCEPTED)
+
+        if payment.status == Payment.STATUS_SUCCEEDED:
+            order = payment.order
+            serializer = OrderSerializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        payment.metadata.update({'verification': verification})
         payment.status = Payment.STATUS_SUCCEEDED
-        payment.save(update_fields=['status'])
+        payment.provider_reference = str(verification.get('id') or payment.provider_reference)
+        payment.save(update_fields=['status', 'metadata', 'provider_reference'])
+        try:
+            order = finalize_paid_order(payment.order)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = OrderSerializer(order)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PaystackWebhookView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', None)
+        if not secret_key:
+            return Response({'detail': 'Paystack secret key is not configured.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        provided_signature = request.headers.get('x-paystack-signature', '')
+        computed_signature = hmac.new(
+            secret_key.encode('utf-8'),
+            request.body,
+            hashlib.sha512,
+        ).hexdigest()
+        if not hmac.compare_digest(provided_signature, computed_signature):
+            return Response({'detail': 'Invalid signature.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            return Response({'detail': 'Invalid payload.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if payload.get('event') != 'charge.success':
+            return Response({'detail': 'Ignored.'}, status=status.HTTP_200_OK)
+
+        data = payload.get('data') or {}
+        reference = data.get('reference')
+        if not reference:
+            return Response({'detail': 'Missing reference.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment = get_object_or_404(
+            Payment,
+            reference=reference,
+            provider=Payment.PROVIDER_PAYSTACK,
+        )
+
+        gateway_amount = data.get('amount')
+        gateway_currency = (data.get('currency') or '').upper()
+        expected_amount = int((payment.amount * Decimal('100')).quantize(Decimal('1')))
+        expected_currency = payment.currency.upper()
+        if gateway_amount != expected_amount or gateway_currency != expected_currency:
+            payment.status = Payment.STATUS_FAILED
+            payment.metadata.update({'webhook': data, 'verification_error': 'Amount/currency mismatch'})
+            payment.save(update_fields=['status', 'metadata'])
+            mark_payment_failed(payment.order)
+            return Response({'detail': 'Payment verification mismatch.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment.metadata.update({'webhook': data})
+        payment.status = Payment.STATUS_SUCCEEDED
+        payment.provider_reference = str(data.get('id') or payment.provider_reference)
+        payment.save(update_fields=['status', 'metadata', 'provider_reference'])
         try:
             order = finalize_paid_order(payment.order)
         except ValueError as exc:

@@ -96,10 +96,15 @@ Response body:
 
 Request body:
 ```json
-{ "reference": "paystack_xxx", "status": "success" }
+{ "reference": "paystack_xxx" }
 ```
 
-`status` defaults to `"success"` if omitted. A successful verification finalizes the order.
+The backend verifies the transaction directly with Paystack and only finalizes on a successful provider response.
+
+### Paystack webhook
+- `POST /api/payments/paystack/webhook/` (no auth; signature required)
+
+The backend validates `x-paystack-signature` and handles `charge.success` events.
 
 ### M-Pesa STK push
 - `POST /api/payments/mpesa/stk-push/` (auth required)
