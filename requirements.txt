@@ -4,3 +4,6 @@ djangorestframework==3.15.2
 gunicorn
 whitenoise
 python-dotenv
+django-storages==1.14.4
+azure-storage-blob==12.19.1
+Pillow==10.4.0

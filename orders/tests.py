@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
+from analytics.models import CheckoutEvent
 from products.models import Product
 
 User = get_user_model()
@@ -37,3 +38,5 @@ class CheckoutFlowTests(APITestCase):
         checkout_response = self.client.post(reverse('checkout'), format='json')
         self.assertEqual(checkout_response.status_code, 200)
         self.assertEqual(checkout_response.data['status'], 'submitted')
+        self.assertEqual(checkout_response.data['payment']['status'], 'skipped')
+        self.assertTrue(CheckoutEvent.objects.filter(order_id=checkout_response.data['id']).exists())

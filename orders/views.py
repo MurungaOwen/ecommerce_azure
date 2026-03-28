@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from products.models import Product
 
 from .models import Order, OrderItem
+from .services import process_payment, record_checkout_analytics
 from .serializers import CartItemCreateSerializer, OrderSerializer
 
 
@@ -98,7 +99,12 @@ class CheckoutView(APIView):
             cart.checked_out_at = timezone.now()
             cart.save(update_fields=['status', 'checked_out_at'])
 
+        payment_result = process_payment(cart, request.user)
+        analytics_event = record_checkout_analytics(cart, request.user)
         serializer = OrderSerializer(cart)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+        data['payment'] = payment_result
+        data['analytics'] = {'event_id': analytics_event.id}
+        return Response(data, status=status.HTTP_200_OK)
 
 # Create your views here.
