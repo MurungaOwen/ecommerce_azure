@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusTech - Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Segoe UI"', 'Inter', 'sans-serif'] },
+                    colors: {
+                        ms: {
+                            blue: '#0078D4',
+                            blueHover: '#106EBE',
+                            blueActive: '#005A9E',
+                            gray10: '#FAF9F8',
+                            gray20: '#F3F2F1',
+                            gray30: '#EDEBE9',
+                            gray40: '#E1DFDD',
+                            gray130: '#605E5C',
+                            gray160: '#323130',
+                            gray190: '#201F1E'
+                        }
+                    },
+                    boxShadow: {
+                        'ms-sm': '0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108)',
+                        'ms-md': '0 3.2px 7.2px 0 rgba(0,0,0,0.132), 0 0.6px 1.8px 0 rgba(0,0,0,0.108)',
+                        'ms-xl': '0 12.8px 28.8px 0 rgba(0,0,0,0.132), 0 2.4px 7.2px 0 rgba(0,0,0,0.108)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .ms-btn-primary {
+            background-color: #0078D4;
+            color: white;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+
+        .ms-btn-primary:hover {
+            background-color: #106EBE;
+        }
+
+        .ms-btn-primary:active {
+            background-color: #005A9E;
+        }
+
+        .ms-btn-secondary {
+            background-color: white;
+            color: #323130;
+            border: 1px solid #8A8886;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+
+        .ms-btn-secondary:hover {
+            background-color: #F3F2F1;
+        }
+
+        .ms-card {
+            background-color: white;
+            border: 1px solid #EDEBE9;
+            border-radius: 2px;
+            transition: box-shadow 0.2s;
+        }
+
+        .ms-card:hover {
+            box-shadow: 0 3.2px 7.2px 0 rgba(0, 0, 0, 0.132), 0 0.6px 1.8px 0 rgba(0, 0, 0, 0.108);
+            border-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="bg-ms-gray10 text-ms-gray160 min-h-screen flex flex-col font-sans antialiased text-[14px]">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-ms-gray40 sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-[48px]">
+                <div class="flex items-center gap-6">
+                    <a href="index.html"
+                        class="flex items-center gap-2 cursor-pointer select-none no-underline outline-none focus-visible:ring-2 focus-visible:ring-ms-blue focus-visible:ring-offset-2">
+                        <i class="fas fa-cube text-ms-blue text-xl"></i>
+                        <span class="font-semibold text-[16px] text-ms-gray160">Nexus Store</span>
+                    </a>
+
+                    <nav class="hidden md:flex items-center space-x-1">
+                        <a href="index.html"
+                            class="px-3 py-2 text-ms-gray160 hover:bg-ms-gray20 transition-colors font-medium border-b-2 border-ms-blue">Products</a>
+                        <a href="dashboard.html" id="nav-dashboard" style="display: none;"
+                            class="px-3 py-2 text-ms-gray160 hover:bg-ms-gray20 transition-colors">My dashboard</a>
+                    </nav>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden sm:block">
+                        <i
+                            class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-ms-gray130 text-xs"></i>
+                        <input type="text" id="search-input" placeholder="Search products..."
+                            class="pl-8 pr-3 py-1 w-56 border border-ms-gray40 rounded-sm focus:outline-none focus:border-ms-blue focus:ring-1 focus:ring-ms-blue text-[13px] bg-white transition-colors">
+                    </div>
+
+                    <div id="auth-links" class="flex items-center space-x-1">
+                        <!-- JS injected auth links -->
+                    </div>
+
+                    <div class="h-6 w-px bg-ms-gray40 mx-2"></div>
+
+                    <a href="cart.html"
+                        class="relative p-2 text-ms-gray160 hover:bg-ms-gray20 transition-colors flex items-center justify-center rounded-sm group outline-none focus-visible:ring-2 focus-visible:ring-ms-blue">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span id="cart-count"
+                            class="absolute top-1 right-1 bg-ms-blue text-white text-[10px] font-bold px-1 rounded-full min-w-[14px] text-center hidden leading-[14px]">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero area -->
+    <div class="bg-ms-blue text-white overflow-hidden relative border-b border-ms-gray30">
+        <div class="absolute inset-0 bg-gradient-to-r from-[#005A9E] to-ms-blue opacity-90"></div>
+        <div
+            class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10 flex flex-col sm:flex-row justify-between items-center gap-6">
+            <div class="max-w-2xl text-center sm:text-left mx-auto sm:mx-0">
+                <span
+                    class="inline-block py-1 px-3 mb-4 rounded-sm bg-white/20 backdrop-blur-sm text-[11px] font-bold tracking-widest uppercase border border-white/30 text-white shadow-sm">Nexus
+                    Store</span>
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-4 tracking-tight leading-tight">Premium
+                    essentials, delivered.</h1>
+                <p class="text-[16px] text-white/90 leading-relaxed font-medium">We source the highest quality products
+                    across apparel, home, and tech to elevate your daily life. No cluttered info, no long
+                    descriptions—just spot on quality and service.</p>
+            </div>
+            <div class="sm:hidden relative w-full mt-4">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-ms-gray130 text-xs"></i>
+                <input type="text" id="mobile-search-input" placeholder="Search products..."
+                    class="pl-8 pr-3 py-2 w-full border border-white/20 rounded-sm focus:outline-none focus:bg-white focus:text-ms-gray190 text-[14px] bg-white/10 text-white placeholder-white/80 transition-colors">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main id="products"
+        class="flex-grow max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full relative z-10 flex flex-col md:flex-row gap-8">
+
+        <!-- Sidebar Filters -->
+        <aside class="w-full md:w-64 flex-shrink-0">
+            <div class="md:sticky md:top-20 bg-white border border-ms-gray30 p-5 rounded-sm shadow-sm">
+                <div class="mb-6 flex justify-between items-center">
+                    <h3 class="font-semibold text-ms-gray190 text-[16px]">Filters</h3>
+                    <button id="clear-filters" class="text-ms-blue hover:underline text-[13px] font-medium hidden">Clear
+                        all</button>
+                </div>
+
+                <div class="mb-6">
+                    <h4 class="font-semibold text-ms-gray160 text-[14px] mb-3">Categories</h4>
+                    <div id="category-filters" class="space-y-2 text-[14px]">
+                        <div class="flex items-center text-ms-gray130 italic text-xs"><i
+                                class="fas fa-circle-notch fa-spin mr-2"></i> Loading...</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-ms-gray160 text-[14px] mb-3">Price Range</h4>
+                    <div class="flex items-center gap-2 mb-3">
+                        <input type="number" id="min-price" placeholder="Min"
+                            class="w-full border border-ms-gray30 px-2 py-1.5 text-[13px] rounded-sm focus:border-ms-blue outline-none transition-colors">
+                        <span class="text-ms-gray130">-</span>
+                        <input type="number" id="max-price" placeholder="Max"
+                            class="w-full border border-ms-gray30 px-2 py-1.5 text-[13px] rounded-sm focus:border-ms-blue outline-none transition-colors">
+                    </div>
+                    <button id="apply-price-btn"
+                        class="w-full bg-white border border-ms-gray130 text-ms-gray160 hover:bg-ms-gray10 py-1.5 text-[13px] font-semibold rounded-sm transition-colors">Apply</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Product Area -->
+        <div class="flex-grow min-w-0">
+            <div
+                class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between border-b border-ms-gray30 pb-4 gap-4">
+                <div>
+                    <h2 id="page-title" class="text-[20px] font-semibold text-ms-gray190">All Products</h2>
+                    <p id="page-subtitle" class="text-[13px] text-ms-gray130 mt-1 hidden"></p>
+                </div>
+                <div class="text-[13px] text-ms-gray130 font-medium">
+                    <span id="results-count">0</span> results
+                </div>
+            </div>
+
+            <!-- Loader -->
+            <div id="loader" class="flex justify-center items-center py-16">
+                <i class="fas fa-circle-notch fa-spin text-2xl text-ms-blue"></i>
+            </div>
+
+            <!-- Grid -->
+            <div id="products-container"
+                class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 hidden">
+                <!-- Product cards will be injected here -->
+            </div>
+
+            <div id="empty-state"
+                class="text-center py-20 hidden bg-white border border-ms-gray30 rounded-sm shadow-sm">
+                <i class="fas fa-filter text-4xl text-ms-gray130 mb-3"></i>
+                <h3 class="text-lg font-semibold text-ms-gray160">No products found</h3>
+                <p class="text-ms-gray130 mt-1 pb-4">Try adjusting your filters or search query.</p>
+                <button onclick="document.getElementById('clear-filters').click()"
+                    class="ms-btn-primary px-6 py-2 text-[14px] font-medium">Clear Filters</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-ms-gray20 border-t border-ms-gray40 mt-auto py-8">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs text-ms-gray130">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-cube text-ms-gray130"></i>
+                    <span>&copy; 2026 Nexus Store Inc. All rights reserved.</span>
+                </div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-ms-gray160 underline hover:no-underline">Terms of Use</a>
+                    <a href="#" class="hover:text-ms-gray160 underline hover:no-underline">Privacy</a>
+                    <a href="#" class="hover:text-ms-gray160 underline hover:no-underline">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="env.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => { fetchProducts(); });
+    </script>
+</body>
+
+</html>

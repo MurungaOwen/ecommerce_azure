@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Nexus Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Segoe UI"', 'sans-serif'] },
+                    colors: {
+                        ms: { blue: '#0078D4', blueHover: '#106EBE', gray10: '#FAF9F8', gray20: '#F3F2F1', gray30: '#EDEBE9', gray40: '#E1DFDD', gray130: '#605E5C', gray160: '#323130', gray190: '#201F1E' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .ms-btn-primary {
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 2px;
+        }
+
+        .ms-btn-primary:hover {
+            background-color: #106EBE;
+        }
+
+        .ms-card {
+            background-color: white;
+            border: 1px solid #EDEBE9;
+            box-shadow: 0 1.6px 3.6px 0 rgba(0, 0, 0, 0.132), 0 0.3px 0.9px 0 rgba(0, 0, 0, 0.108);
+        }
+    </style>
+</head>
+
+<body class="bg-ms-gray20 text-ms-gray160 min-h-screen flex flex-col font-sans text-[14px]">
+
+    <!-- Navbar -->
+    <header class="bg-white border-b border-ms-gray40 sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-[48px]">
+                <div class="flex items-center gap-6">
+                    <a href="index.html"
+                        class="flex items-center gap-2 cursor-pointer select-none no-underline outline-none focus-visible:ring-2 focus-visible:ring-ms-blue focus-visible:ring-offset-2">
+                        <i class="fas fa-cube text-ms-blue text-xl"></i>
+                        <span class="font-semibold text-[16px] text-ms-gray160">Nexus Store</span>
+                    </a>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm">
+                    <div id="auth-links" class="flex items-center space-x-1"></div>
+                    <div class="h-6 w-px bg-ms-gray40 mx-2"></div>
+                    <a href="cart.html"
+                        class="relative p-2 text-ms-gray160 hover:bg-ms-gray20 transition-colors flex items-center justify-center rounded-sm">
+                        <i class="fas fa-shopping-cart"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-white border-b border-ms-gray30 shadow-sm mb-8">
+        <div
+            class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-semibold text-ms-gray190 tracking-tight">My Account & Orders</h1>
+            <button onclick="loadOrders()"
+                class="bg-white border border-ms-gray130 text-ms-gray160 hover:bg-ms-gray10 px-4 py-1.5 flex items-center gap-2 text-sm font-semibold rounded-sm">
+                <i class="fas fa-sync-alt text-ms-blue"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <main class="flex-grow max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10 pb-12">
+        <div id="loader" class="flex justify-center items-center py-20">
+            <i class="fas fa-circle-notch fa-spin text-2xl text-ms-blue"></i>
+        </div>
+
+        <div id="error-state" class="text-center py-20 hidden ms-card max-w-lg mx-auto p-8">
+            <div class="text-[#A4262C] mb-4">
+                <i class="fas fa-exclamation-triangle text-4xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-ms-gray190 mb-2">Could not load orders</h3>
+            <p class="text-ms-gray130 text-[15px]">There was an error retrieving your order history.</p>
+        </div>
+
+        <div id="empty-state" class="text-center py-20 hidden ms-card p-8">
+            <i class="fas fa-box-open text-6xl text-ms-gray40 mb-6"></i>
+            <h3 class="text-xl font-semibold text-ms-gray190 mb-2">No orders yet</h3>
+            <p class="text-ms-gray130 mb-8">You haven't placed any orders. Start browsing our catalog.</p>
+            <a href="index.html" class="inline-block ms-btn-primary px-8 py-2 font-semibold">Start shopping</a>
+        </div>
+
+        <div id="orders-content" class="hidden space-y-6">
+            <h2 class="text-lg font-semibold text-ms-gray190 mb-4">Order History</h2>
+            <div id="orders-list" class="space-y-6">
+                <!-- JS populated -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-ms-gray10 border-t border-ms-gray40 py-8 mt-auto">
+        <div class="max-w-[1600px] mx-auto px-4 text-center text-xs text-ms-gray130">
+            &copy; 2026 Nexus Store Inc. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="env.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = 'login.html?redirect=dashboard.html'; return;
+            }
+            loadOrders();
+        });
+
+        async function loadOrders() {
+            const loader = document.getElementById('loader');
+            const content = document.getElementById('orders-content');
+            const errorState = document.getElementById('error-state');
+            const emptyState = document.getElementById('empty-state');
+            const list = document.getElementById('orders-list');
+
+            loader.classList.remove('hidden'); content.classList.add('hidden');
+            errorState.classList.add('hidden'); emptyState.classList.add('hidden');
+
+            try {
+                const res = await api.getOrders();
+                const orders = res.results || res;
+
+                loader.classList.add('hidden');
+
+                if (!orders || orders.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                content.classList.remove('hidden');
+
+                const getStatusBadge = (status) => {
+                    const map = {
+                        'submitted': '<span class="px-2 py-0.5 bg-[#FFF4CE] text-[#797775] font-semibold text-xs border border-[#F3F2F1]">Submitted</span>',
+                        'processing': '<span class="px-2 py-0.5 bg-[#CCE4F7] text-[#005A9E] font-semibold text-xs border border-[#0078D4]">Processing</span>',
+                        'shipped': '<span class="px-2 py-0.5 bg-[#E1DFDD] text-[#323130] font-semibold text-xs border border-[#8A8886]">Shipped</span>',
+                        'completed': '<span class="px-2 py-0.5 bg-[#DFF6DD] text-[#107C10] font-semibold text-xs border border-[#107C10]">Completed</span>',
+                        'cancelled': '<span class="px-2 py-0.5 bg-[#FDE7E9] text-[#A4262C] font-semibold text-xs border border-[#A4262C]">Cancelled</span>'
+                    };
+                    return map[status.toLowerCase()] || `<span class="px-2 py-0.5 bg-ms-gray20 text-ms-gray160 font-semibold text-xs border border-ms-gray40">${status}</span>`;
+                };
+
+                const getPaymentBadge = (status) => {
+                    const map = {
+                        'paid': '<span class="text-[#107C10] font-semibold"><i class="fas fa-check-circle mr-1"></i> Paid</span>',
+                        'failed': '<span class="text-[#A4262C] font-semibold"><i class="fas fa-times-circle mr-1"></i> Failed</span>',
+                        'pending': '<span class="text-[#D83B01] font-semibold"><i class="fas fa-clock mr-1"></i> Pending</span>'
+                    };
+                    return map[status.toLowerCase()] || status;
+                };
+
+                list.innerHTML = orders.map(o => {
+                    const d = new Date(o.created_at);
+                    const formattedDate = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                    const totalAmount = formatCurrency(parseFloat(o.total || 0));
+
+                    const itemsHtml = o.items.map(i => `
+                        <div class="flex items-center justify-between py-3 border-b border-ms-gray20 last:border-0 hover:bg-ms-gray10 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-white flex items-center justify-center border border-ms-gray30 shrink-0">
+                                   ${i.product.image ? `<img src="${i.product.image}" class="max-h-10 max-w-10 object-contain">` : `<i class="fas fa-box text-ms-gray40"></i>`}
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-ms-gray160 text-[15px]">${i.product.name}</p>
+                                    <p class="text-ms-gray130 text-[13px]">Qty: ${i.quantity} &times; ${formatCurrency(parseFloat(i.unit_price))}</p>
+                                </div>
+                            </div>
+                            <div class="font-semibold text-ms-gray190 text-[15px]">
+                                ${formatCurrency(parseFloat(i.line_total))}
+                            </div>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="ms-card overflow-hidden">
+                            <div class="bg-ms-gray10 border-b border-ms-gray30 px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div>
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span class="font-bold text-ms-gray190 tracking-tight text-[16px]">Order #${o.id}</span>
+                                        ${getStatusBadge(o.status)}
+                                    </div>
+                                    <div class="text-ms-gray130 text-[13px]">${formattedDate}</div>
+                                </div>
+                                <div class="text-left sm:text-right">
+                                    <div class="text-[13px] text-ms-gray130 mb-1">Total Amount</div>
+                                    <div class="text-[18px] font-bold text-ms-gray190">${totalAmount}</div>
+                                </div>
+                            </div>
+                            <div class="px-6 py-4 bg-white">
+                                <!-- Order Pipeline Timeline -->
+                                <div class="mb-8 border-b border-ms-gray30 pb-6 overflow-hidden">
+                                    <h4 class="text-[13px] font-semibold text-ms-gray130 uppercase tracking-widest mb-4">Processing Progress</h4>
+                                    ${timelineHtml}
+                                </div>
+                                <h4 class="text-[13px] font-semibold text-ms-gray130 uppercase tracking-widest mb-3 border-b border-ms-gray30 pb-2">Items Ordered</h4>
+                                <div class="mb-6">
+                                    ${itemsHtml}
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-t border-ms-gray30 pt-4">
+                                    <div class="text-[14px]">
+                                        <span class="text-ms-gray130 mr-2">Payment Status:</span>
+                                        ${getPaymentBadge(o.payment_status)}
+                                    </div>
+                                    ${o.payment_status === 'pending' && o.status !== 'cancelled' ? `<button onclick="window.location.href='cart.html'" class="text-ms-blue font-semibold hover:underline text-[14px]">Complete Payment <i class="fas fa-arrow-right ml-1"></i></button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                loader.classList.add('hidden'); errorState.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+
+</html>

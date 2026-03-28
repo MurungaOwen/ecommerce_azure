@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Nexus Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Segoe UI"', 'sans-serif'] },
+                    colors: { ms: { blue: '#0078D4', blueHover: '#106EBE', gray40: '#E1DFDD', gray130: '#605E5C', gray160: '#323130' } },
+                    boxShadow: { 'ms-xl': '0 12.8px 28.8px 0 rgba(0,0,0,0.132), 0 2.4px 7.2px 0 rgba(0,0,0,0.108)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        .ms-input {
+            border: 1px solid #8A8886;
+            border-radius: 2px;
+            padding: 6px 12px;
+            transition: border-color 0.1s;
+            width: 100%;
+        }
+
+        .ms-input:focus {
+            outline: none;
+            border-color: #0078D4;
+            border-bottom-width: 2px;
+            padding-bottom: 5px;
+        }
+
+        .ms-btn-primary {
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+
+        .ms-btn-primary:hover {
+            background-color: #106EBE;
+        }
+
+        .ms-link {
+            color: #0078D4;
+            text-decoration: none;
+        }
+
+        .ms-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body class="bg-[#FAF9F8] text-ms-gray160 min-h-screen flex items-center justify-center font-sans text-[15px] p-4">
+
+    <div class="bg-white p-10 max-w-[440px] w-full shadow-ms-xl border border-ms-gray40">
+        <div class="mb-4 text-left">
+            <a href="index.html"
+                class="inline-flex items-center text-ms-gray130 hover:text-ms-gray190 mb-5 transition-colors font-semibold text-[13px] group outline-none focus-visible:ring-2 focus-visible:ring-ms-blue rounded-sm py-1">
+                <i class="fas fa-arrow-left mr-2 group-hover:-translate-x-1 transition-transform"></i> Back to home
+            </a>
+            <h2 class="text-[24px] font-semibold text-ms-gray160 leading-tight">Create account</h2>
+        </div>
+
+        <form id="register-form" class="space-y-4">
+            <div id="error-msg"
+                class="hidden text-[#A4262C] text-sm bg-[#FDE7E9] p-2 border border-[#A4262C] rounded-sm"></div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="first_name" placeholder="First name" required class="ms-input h-[36px]">
+                <input type="text" id="last_name" placeholder="Last name" required class="ms-input h-[36px]">
+            </div>
+
+            <div>
+                <input type="email" id="email" placeholder="Email address" required class="ms-input h-[36px]">
+            </div>
+
+            <div class="relative">
+                <input type="password" id="password" placeholder="Password" required class="ms-input h-[36px] pr-10">
+                <button type="button" class="absolute right-2 top-1.5 text-ms-gray130 hover:text-ms-gray160"
+                    onclick="togglePassword('password', this)">
+                    <i class="fas fa-eye-slash"></i>
+                </button>
+            </div>
+
+            <div class="relative">
+                <input type="password" id="confirm_password" placeholder="Confirm password" required
+                    class="ms-input h-[36px] pr-10">
+                <button type="button" class="absolute right-2 top-1.5 text-ms-gray130 hover:text-ms-gray160"
+                    onclick="togglePassword('confirm_password', this)">
+                    <i class="fas fa-eye-slash"></i>
+                </button>
+            </div>
+
+            <div class="text-[13px] pt-1 pb-4">
+                Already have an account? <a href="login.html" class="ms-link">Sign in</a>
+            </div>
+
+            <div class="flex justify-end pt-2 text-[15px]">
+                <button type="submit" id="submit-btn"
+                    class="ms-btn-primary px-8 py-2 font-semibold h-[32px] min-w-[108px] flex justify-center items-center">
+                    <span>Next</span>
+                    <i class="fas fa-circle-notch fa-spin hidden ml-2" id="submit-spinner"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script src="env.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        function togglePassword(inputId, btnEl) {
+            const input = document.getElementById(inputId);
+            const icon = btnEl.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const spinner = document.getElementById('submit-spinner');
+            const errorMsg = document.getElementById('error-msg');
+
+            errorMsg.classList.add('hidden');
+
+            const emailVal = document.getElementById('email').value;
+            const passVal = document.getElementById('password').value;
+            const confirmVal = document.getElementById('confirm_password').value;
+
+            if (passVal !== confirmVal) {
+                errorMsg.textContent = "Passwords do not match.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true; spinner.classList.remove('hidden');
+
+            const data = {
+                username: emailVal, // Email doubles as username
+                email: emailVal,
+                first_name: document.getElementById('first_name').value,
+                last_name: document.getElementById('last_name').value,
+                password: passVal
+            };
+
+            try {
+                const res = await api.register(data);
+                if (res.username) {
+                    try {
+                        const loginRes = await api.login(data.username, data.password);
+                        localStorage.setItem('token', loginRes.token);
+                        window.location.href = 'index.html';
+                    } catch (e) {
+                        window.location.href = 'login.html?registered=true';
+                    }
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message || "There was a problem creating your account. Please check your inputs.";
+                errorMsg.classList.remove('hidden');
+                btn.disabled = false; spinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

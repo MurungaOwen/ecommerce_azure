@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart - Nexus Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Segoe UI"', 'sans-serif'] },
+                    colors: {
+                        ms: { blue: '#0078D4', blueHover: '#106EBE', gray10: '#FAF9F8', gray20: '#F3F2F1', gray30: '#EDEBE9', gray40: '#E1DFDD', gray130: '#605E5C', gray160: '#323130', gray190: '#201F1E' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .ms-btn-primary {
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            transition: background-color 0.1s;
+        }
+
+        .ms-btn-primary:hover {
+            background-color: #106EBE;
+        }
+
+        .ms-link {
+            color: #0078D4;
+            text-decoration: none;
+        }
+
+        .ms-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body class="bg-ms-gray10 text-ms-gray160 min-h-screen flex flex-col font-sans text-[15px]">
+
+    <header class="bg-white border-b border-ms-gray40 sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-[48px]">
+                <div class="flex items-center gap-6">
+                    <a href="index.html"
+                        class="flex items-center gap-2 cursor-pointer select-none no-underline outline-none focus-visible:ring-2 focus-visible:ring-ms-blue focus-visible:ring-offset-2">
+                        <i class="fas fa-cube text-ms-blue text-xl"></i>
+                        <span class="font-semibold text-[16px] text-ms-gray160">Nexus Store</span>
+                    </a>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm">
+                    <div id="auth-links" class="flex items-center space-x-1"></div>
+                    <div class="h-6 w-px bg-ms-gray40 mx-2"></div>
+                    <a href="cart.html"
+                        class="relative p-2 text-ms-blue bg-ms-gray20 transition-colors flex items-center justify-center rounded-sm">
+                        <i class="fas fa-shopping-cart"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full relative z-10">
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-semibold text-ms-gray190 tracking-tight">Shopping Cart</h1>
+            <a href="index.html" class="ms-link text-sm font-semibold">Continue shopping</a>
+        </div>
+
+        <div id="loader" class="flex justify-center items-center py-20">
+            <i class="fas fa-circle-notch fa-spin text-2xl text-ms-blue"></i>
+        </div>
+
+        <div id="empty-state" class="text-center py-20 hidden bg-white border border-ms-gray30 shadow-sm">
+            <i class="fas fa-shopping-cart text-6xl text-ms-gray40 mb-6"></i>
+            <h3 class="text-xl font-semibold text-ms-gray160 mb-2">Your cart is empty</h3>
+            <p class="text-ms-gray130 mb-8 max-w-sm mx-auto">Looks like you haven't added anything to your cart.</p>
+            <a href="index.html" class="inline-block ms-btn-primary px-8 py-2 font-semibold">Browse products</a>
+        </div>
+
+        <div id="cart-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8 hidden">
+            <!-- Cart Items -->
+            <div class="lg:col-span-2 space-y-4" id="cart-items-container">
+            </div>
+
+            <!-- Order Summary -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 border border-ms-gray30 shadow-sm lg:sticky lg:top-20">
+                    <h2 class="text-xl font-semibold text-ms-gray190 mb-6 border-b border-ms-gray30 pb-4">Order Summary
+                    </h2>
+
+                    <div class="space-y-3 mb-6 text-[14px]">
+                        <div class="flex justify-between text-ms-gray130">
+                            <span>Subtotal</span>
+                            <span id="summary-subtotal" class="font-semibold text-ms-gray160">KES 0.00</span>
+                        </div>
+                        <div class="flex justify-between text-ms-gray130">
+                            <span>Estimated Shipping</span>
+                            <span class="font-semibold text-ms-gray160">Free</span>
+                        </div>
+                        <div class="flex justify-between text-ms-gray130">
+                            <span>Estimated Tax</span>
+                            <span class="text-xs italic">Calculated at checkout</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-ms-gray40 pt-4 mb-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[16px] font-semibold text-ms-gray190">Estimated Total</span>
+                            <span id="summary-total" class="text-2xl font-bold text-ms-gray190">KES 0.00</span>
+                        </div>
+                    </div>
+
+                    <button id="checkout-btn"
+                        class="w-full ms-btn-primary py-3 font-semibold text-[15px] flex justify-center items-center">
+                        Secure checkout
+                    </button>
+
+                    <div class="mt-4 text-center text-ms-gray130 text-xs">
+                        <i class="fas fa-lock mr-1"></i> Secure transaction
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkout Success Modal -->
+        <div id="success-modal"
+            class="fixed inset-0 z-[100] hidden items-center justify-center bg-ms-gray190/50 backdrop-blur-[2px] px-4">
+            <div class="bg-white w-full max-w-md shadow-ms-xl p-8 text-center border border-ms-gray40 relative">
+                <div
+                    class="w-16 h-16 bg-[#DFF6DD] text-[#107C10] rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-check text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-ms-gray190 mb-2">Order Confirmed</h2>
+                <p class="text-ms-gray130 mb-8 text-[15px]">Thank you for your purchase. We'll send you a confirmation
+                    email shortly.</p>
+                <button onclick="window.location.href='index.html'"
+                    class="w-full ms-btn-primary py-2 font-semibold text-[15px]">Return to store</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-ms-gray20 border-t border-ms-gray40 mt-auto py-8">
+        <div class="max-w-[1600px] mx-auto px-4 text-center text-xs text-ms-gray130">
+            &copy; 2026 Nexus Store Inc. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="env.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('token')) { window.location.href = 'login.html?redirect=cart'; return; }
+
+            const loader = document.getElementById('loader');
+            const cartContent = document.getElementById('cart-content');
+            const itemsContainer = document.getElementById('cart-items-container');
+            const emptyState = document.getElementById('empty-state');
+
+            const renderCart = async () => {
+                try {
+                    const cart = await api.getCart();
+                    loader.classList.add('hidden');
+
+                    if (!cart.items || cart.items.length === 0) {
+                        cartContent.classList.add('hidden'); emptyState.classList.remove('hidden'); return;
+                    }
+
+                    emptyState.classList.add('hidden'); cartContent.classList.remove('hidden');
+
+                    let total = 0;
+                    itemsContainer.innerHTML = cart.items.map(item => {
+                        const lineTotal = item.product.price * item.quantity;
+                        total += lineTotal;
+                        return `
+                            <div class="bg-white p-4 border border-ms-gray30 flex flex-col sm:flex-row items-center gap-6 shadow-sm">
+                                <div class="w-24 h-24 bg-ms-gray10 flex-shrink-0 flex items-center justify-center p-2 border border-ms-gray30">
+                                     ${item.product.image ? `<img src="${item.product.image}" class="h-full w-full object-contain">` : `<i class="fas fa-box-open text-ms-gray40 text-4xl"></i>`}
+                                </div>
+                                <div class="flex-grow text-center sm:text-left">
+                                    <h3 class="text-[16px] font-semibold text-ms-gray190 mb-1"><a href="product.html?id=${item.product.id}" class="hover:underline">${item.product.name}</a></h3>
+                                    <p class="text-ms-gray160 font-medium">${formatCurrency(item.product.price)}</p>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center border border-ms-gray40">
+                                        <button onclick="updateQty(${item.product.id}, ${item.quantity - 1})" class="px-3 py-1 text-ms-gray160 hover:bg-ms-gray20"><i class="fas fa-minus text-xs"></i></button>
+                                        <span class="w-8 text-center text-ms-gray190 font-semibold text-sm">${item.quantity}</span>
+                                        <button onclick="updateQty(${item.product.id}, ${item.quantity + 1})" class="px-3 py-1 text-ms-gray160 hover:bg-ms-gray20"><i class="fas fa-plus text-xs"></i></button>
+                                    </div>
+                                    <button onclick="updateQty(${item.product.id}, 0)" class="text-ms-gray130 hover:text-[#A4262C] transition-colors p-2" title="Remove">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    document.getElementById('summary-subtotal').textContent = formatCurrency(total);
+                    document.getElementById('summary-total').textContent = formatCurrency(total);
+                } catch (e) {
+                    console.error('Failed to load cart', e);
+                    loader.innerHTML = `<p class="text-[#A4262C] font-semibold">Failed to load your cart.</p>`;
+                }
+            };
+
+            window.updateQty = async (productId, newQty) => {
+                itemsContainer.style.opacity = '0.5';
+                try {
+                    await api.updateCart(productId, newQty); await updateCartCount(); await renderCart();
+                } catch (e) { alert('Failed to update cart'); }
+                itemsContainer.style.opacity = '1';
+            };
+
+            document.getElementById('checkout-btn').addEventListener('click', async () => {
+                const btn = document.getElementById('checkout-btn');
+                btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Processing`; btn.disabled = true;
+
+                try {
+                    const order = await api.checkout();
+                    const initRes = await api.paystackInit(order.id);
+                    if (initRes && initRes.authorization_url) {
+                        window.location.href = initRes.authorization_url;
+                    } else {
+                        throw new Error("Missing authorization URL");
+                    }
+                } catch (e) {
+                    alert(e.message || 'Checkout failed');
+                    btn.innerHTML = `Secure checkout`; btn.disabled = false;
+                }
+            });
+
+            // Handle return from Paystack
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('reference');
+            if (ref) {
+                const btn = document.getElementById('checkout-btn');
+                btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Verifying...`; btn.disabled = true;
+                try {
+                    await api.paystackVerify(ref);
+                    document.getElementById('success-modal').classList.remove('hidden');
+                    document.getElementById('success-modal').classList.add('flex');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    alert(e.message || "Payment verification failed. Please contact support.");
+                    btn.innerHTML = `Secure checkout`; btn.disabled = false;
+                }
+            }
+
+            renderCart();
+        });
+    </script>
+</body>
+
+</html>
