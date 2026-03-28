@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from django.contrib import admin
-from django.core.exceptions import PermissionDenied
 from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 from django.template.response import TemplateResponse
 
@@ -15,8 +14,6 @@ class OrderItemInline(admin.TabularInline):
     readonly_fields = ("unit_price", "line_total")
 
     def line_total(self, obj):
-        if not obj:
-            return Decimal("0.00")
         return obj.unit_price * obj.quantity
 
     line_total.short_description = "Line total"
@@ -60,8 +57,6 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 
 def analytics_view(request):
-    if not request.user.is_active or not request.user.is_staff:
-        raise PermissionDenied
     submitted_orders = Order.objects.filter(status=Order.STATUS_SUBMITTED)
     submitted_items = OrderItem.objects.filter(order__status=Order.STATUS_SUBMITTED)
     revenue_expression = ExpressionWrapper(
