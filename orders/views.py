@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status
+from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -29,6 +29,18 @@ from .serializers import (
     PaystackInitializeSerializer,
     PaystackVerifySerializer,
 )
+
+
+class OrderHistoryView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(
+            user=self.request.user
+        ).exclude(
+            status=Order.STATUS_CART
+        ).order_by('-created_at')
 
 
 def get_or_create_cart(user):
@@ -151,7 +163,12 @@ class PaystackInitializeView(APIView):
 
 
 class PaystackVerifyView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.shortcuts import redirect
+        reference = request.query_params.get('reference', '')
+        return redirect(f"http://127.0.0.1:5500/cart.html?reference={reference}")
 
     def post(self, request):
         serializer = PaystackVerifySerializer(data=request.data)
@@ -160,7 +177,6 @@ class PaystackVerifyView(APIView):
             Payment,
             reference=serializer.validated_data['reference'],
             provider=Payment.PROVIDER_PAYSTACK,
-            user=request.user,
         )
 
         try:

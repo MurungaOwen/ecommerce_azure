@@ -37,6 +37,7 @@ def _paystack_request(path, method='GET', payload=None):
         headers={
             'Authorization': f'Bearer {secret_key}',
             'Content-Type': 'application/json',
+            'User-Agent': 'NexusStore/1.0',
         },
     )
     try:
