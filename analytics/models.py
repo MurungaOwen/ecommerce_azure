@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 
 class CheckoutEvent(models.Model):
+    """Tracks analytics data for each completed checkout."""
     order = models.OneToOneField(
         'orders.Order',
         on_delete=models.CASCADE,
