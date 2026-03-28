@@ -1,10 +1,11 @@
 # ecommerce_azure
 This is a sample ecommerce platform that is cloud Native
 ## Features of Azure used
-- App service
+- App service for deployment
+- Azure postgresql for db
 - Ai service for indexing and semantic product search
-- Azure service bus
-- 
+- Azure service bus for events ie  order_created that triggers notification
+- Azure Blob storage for Product images 
 ## API Endpoints
 
 All API routes are prefixed with `/api/`.
