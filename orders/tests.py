@@ -61,31 +61,3 @@ class CheckoutFlowTests(APITestCase):
         product.refresh_from_db()
         self.assertEqual(product.stock, 3)
         self.assertTrue(CheckoutEvent.objects.filter(order_id=checkout_response.data['id']).exists())
-
-    def test_mpesa_stk_push_flow(self):
-        user = User.objects.create_user(username='mpesa-buyer', password='strongpassword')
-        product = Product.objects.create(
-            name='Sugar',
-            description='Raw sugar',
-            price='5.00',
-            stock=4,
-        )
-        self.client.force_authenticate(user=user)
-        self.client.post(
-            reverse('cart-items'),
-            {'product_id': product.id, 'quantity': 1},
-            format='json',
-        )
-        checkout_response = self.client.post(reverse('checkout'), format='json')
-        mpesa_init = self.client.post(
-            reverse('mpesa-stk-push'),
-            {'order_id': checkout_response.data['id'], 'phone_number': '254700000000'},
-            format='json',
-        )
-        callback_response = self.client.post(
-            reverse('mpesa-callback'),
-            {'checkout_request_id': mpesa_init.data['checkout_request_id'], 'result_code': 0},
-            format='json',
-        )
-        self.assertEqual(callback_response.status_code, 200)
-        self.assertEqual(callback_response.data['payment_status'], 'paid')

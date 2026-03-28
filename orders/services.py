@@ -35,30 +35,6 @@ def initiate_paystack_payment(order, user):
     return payment
 
 
-def initiate_mpesa_stk_push(order, user, phone_number):
-    total, item_count = calculate_order_totals(order)
-    reference = generate_reference('mpesa')
-    checkout_request_id = generate_reference('checkout')
-    merchant_request_id = generate_reference('merchant')
-    payment = Payment.objects.create(
-        order=order,
-        user=user,
-        provider=Payment.PROVIDER_MPESA,
-        reference=reference,
-        amount=total,
-        currency=getattr(settings, 'MPESA_CURRENCY', 'KES'),
-        provider_reference=checkout_request_id,
-        metadata={
-            'items': item_count,
-            'phone_number': phone_number,
-            'checkout_request_id': checkout_request_id,
-            'merchant_request_id': merchant_request_id,
-            'callback_url': getattr(settings, 'MPESA_CALLBACK_URL', None),
-        },
-    )
-    return payment
-
-
 def finalize_paid_order(order):
     with transaction.atomic():
         locked_order = Order.objects.select_for_update().get(pk=order.pk)

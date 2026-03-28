@@ -9,14 +9,11 @@ from products.models import Product
 from .models import Order, OrderItem, Payment
 from .services import (
     finalize_paid_order,
-    initiate_mpesa_stk_push,
     initiate_paystack_payment,
     mark_payment_failed,
 )
 from .serializers import (
     CartItemCreateSerializer,
-    MpesaCallbackSerializer,
-    MpesaStkPushSerializer,
     OrderSerializer,
     PaystackInitializeSerializer,
     PaystackVerifySerializer,
@@ -167,60 +164,5 @@ class PaystackVerifyView(APIView):
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class MpesaStkPushView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request):
-        serializer = MpesaStkPushSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        order = get_payment_order(request.user, serializer.validated_data['order_id'])
-        payment = initiate_mpesa_stk_push(order, request.user, serializer.validated_data['phone_number'])
-        return Response(
-            {
-                'order_id': order.id,
-                'reference': payment.reference,
-                'amount': str(payment.amount),
-                'currency': payment.currency,
-                'checkout_request_id': payment.metadata.get('checkout_request_id'),
-                'merchant_request_id': payment.metadata.get('merchant_request_id'),
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class MpesaCallbackView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = MpesaCallbackSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        payment = get_object_or_404(
-            Payment,
-            provider=Payment.PROVIDER_MPESA,
-            provider_reference=serializer.validated_data['checkout_request_id'],
-        )
-        result_code = serializer.validated_data['result_code']
-        payment.metadata.update(
-            {
-                'result_code': result_code,
-                'result_desc': serializer.validated_data.get('result_desc'),
-            }
-        )
-        if result_code == 0:
-            payment.status = Payment.STATUS_SUCCEEDED
-            payment.save(update_fields=['status', 'metadata'])
-            try:
-                order = finalize_paid_order(payment.order)
-            except ValueError as exc:
-                return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-            serializer = OrderSerializer(order)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        payment.status = Payment.STATUS_FAILED
-        payment.save(update_fields=['status', 'metadata'])
-        mark_payment_failed(payment.order)
-        return Response({'detail': 'Payment failed.'}, status=status.HTTP_400_BAD_REQUEST)
 
 # Create your views here.
