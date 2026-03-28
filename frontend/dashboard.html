@@ -169,6 +169,41 @@
 
                     const totalAmount = formatCurrency(parseFloat(o.total || 0));
 
+                    // Fulfillment Progress component
+                    const fStatus = (o.fulfillment_status || 'pending').toLowerCase();
+                    const isCancelled = o.status.toLowerCase() === 'cancelled';
+
+                    let steps = [
+                        { label: 'Order Placed', icon: 'fa-clipboard-check', done: true },
+                        { label: 'Processing', icon: 'fa-box-open', done: ['processing', 'shipped', 'delivered', 'completed'].includes(fStatus) },
+                        { label: 'Shipped', icon: 'fa-truck', done: ['shipped', 'delivered', 'completed'].includes(fStatus) },
+                        { label: 'Delivered', icon: 'fa-home', done: ['delivered', 'completed'].includes(fStatus) }
+                    ];
+
+                    let timelineHtml = '';
+                    if (isCancelled) {
+                        timelineHtml = `<div class="w-full bg-[#FDE7E9] text-[#A4262C] p-4 text-center font-semibold rounded-sm border border-[#A4262C]"><i class="fas fa-ban mr-2"></i> This order has been cancelled.</div>`;
+                    } else {
+                        const progressWidth = fStatus === 'pending' ? '0%' : (['processing'].includes(fStatus) ? '33%' : (['shipped'].includes(fStatus) ? '66%' : '100%'));
+                        const stepsHtml = steps.map(step => `
+                                 <div class="flex flex-col items-center bg-white px-2 z-10 w-20">
+                                     <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 ${step.done ? 'bg-[#107C10] border-[#107C10] text-white' : 'bg-white border-ms-gray40 text-ms-gray40'} transition-colors shadow-sm">
+                                         <i class="fas ${step.icon} text-[10px] sm:text-sm"></i>
+                                     </div>
+                                     <span class="mt-2 text-[10px] sm:text-xs font-semibold ${step.done ? 'text-[#107C10]' : 'text-ms-gray130'} w-full text-center leading-tight whitespace-nowrap">${step.label}</span>
+                                 </div>
+                         `).join('');
+
+                        timelineHtml = `
+                         <div class="relative flex justify-between items-start w-full mt-4 mb-2 max-w-2xl mx-auto">
+                             <!-- Connecting Lines -->
+                             <div class="absolute top-4 sm:top-5 left-[10%] w-[80%] h-1 bg-ms-gray30 -translate-y-1/2 rounded-full"></div>
+                             <div class="absolute top-4 sm:top-5 left-[10%] h-1 bg-[#107C10] -translate-y-1/2 transition-all rounded-full" style="width: calc(${progressWidth} * 0.8)"></div>
+                             ${stepsHtml}
+                         </div>
+                         `;
+                    }
+
                     const itemsHtml = o.items.map(i => `
                         <div class="flex items-center justify-between py-3 border-b border-ms-gray20 last:border-0 hover:bg-ms-gray10 transition-colors">
                             <div class="flex items-center gap-4">
