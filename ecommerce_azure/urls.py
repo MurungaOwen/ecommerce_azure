@@ -19,7 +19,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from orders.admin import analytics_view
+
 urlpatterns = [
+    path('admin/analytics/', analytics_view, name='admin-analytics'),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/', include('products.urls')),

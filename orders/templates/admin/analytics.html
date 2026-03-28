@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="module">
+    <h2>Sales analytics</h2>
+    <table>
+      <tr>
+        <th>Submitted orders</th>
+        <td>{{ analytics.total_orders }}</td>
+      </tr>
+      <tr>
+        <th>Total revenue</th>
+        <td>{{ analytics.total_revenue }}</td>
+      </tr>
+      <tr>
+        <th>Total items sold</th>
+        <td>{{ analytics.total_items_sold }}</td>
+      </tr>
+      <tr>
+        <th>Active carts</th>
+        <td>{{ analytics.active_carts }}</td>
+      </tr>
+      <tr>
+        <th>Average order value</th>
+        <td>{{ analytics.average_order_value }}</td>
+      </tr>
+    </table>
+  </div>
+  <p><a href="{% url 'admin:index' %}">Back to admin</a></p>
+{% endblock %}
