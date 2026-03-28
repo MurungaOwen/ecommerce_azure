@@ -101,40 +101,6 @@ Request body:
 
 `status` defaults to `"success"` if omitted. A successful verification finalizes the order.
 
-### M-Pesa STK push
-- `POST /api/payments/mpesa/stk-push/` (auth required)
-
-Request body:
-```json
-{ "order_id": 1, "phone_number": "+254712345678" }
-```
-
-Response body:
-```json
-{
-  "order_id": 1,
-  "reference": "mpesa_xxx",
-  "amount": "100.00",
-  "currency": "KES",
-  "checkout_request_id": "checkout_xxx",
-  "merchant_request_id": "merchant_xxx"
-}
-```
-
-### M-Pesa callback
-- `POST /api/payments/mpesa/callback/` (no auth)
-
-Request body:
-```json
-{
-  "checkout_request_id": "checkout_xxx",
-  "result_code": 0,
-  "result_desc": "Success"
-}
-```
-
-`result_code` of `0` marks the payment as successful and finalizes the order.
-
 ## Analytics
 
 ### App analytics overview

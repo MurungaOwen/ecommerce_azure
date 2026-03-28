@@ -21,10 +21,7 @@ All API routes are prefixed with `/api/`.
 ### Payments
 - `POST /api/payments/paystack/initialize/` Start a Paystack payment for a pending order.
 - `POST /api/payments/paystack/verify/` Verify a Paystack payment and finalize the order on success.
-- `POST /api/payments/mpesa/stk-push/` Start an M-Pesa STK push for a pending order.
-- `POST /api/payments/mpesa/callback/` Receive the M-Pesa callback and finalize the order on success.
-
-Payment provider is set automatically based on the endpoint used (Paystack or M-Pesa), so clients do not send a provider value in the request.
+Payment provider is set automatically for Paystack, so clients do not send a provider value in the request.
 
 ## Database Configuration
 

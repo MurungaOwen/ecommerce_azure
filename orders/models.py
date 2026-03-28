@@ -74,10 +74,8 @@ class OrderItem(models.Model):
 
 class Payment(models.Model):
     PROVIDER_PAYSTACK = 'paystack'
-    PROVIDER_MPESA = 'mpesa'
     PROVIDER_CHOICES = [
         (PROVIDER_PAYSTACK, 'Paystack'),
-        (PROVIDER_MPESA, 'M-Pesa'),
     ]
 
     STATUS_PENDING = 'pending'
