@@ -32,7 +32,7 @@ class AnalyticsOverviewView(APIView):
         product_summary = Product.objects.aggregate(
             total_products=Count('id'),
             active_products=Count('id', filter=Q(is_active=True)),
-            out_of_stock=Count('id', filter=Q(stock__lte=0)),
+            out_of_stock=Count('id', filter=Q(stock=0)),
         )
         order_counts = Order.objects.aggregate(
             total_orders=Count('id'),
@@ -73,20 +73,20 @@ class AnalyticsOverviewView(APIView):
                 'orders': {
                     'total_orders': order_counts['total_orders'],
                     'status': {
-                        Order.STATUS_CART: order_counts['status_cart'],
-                        Order.STATUS_PAYMENT_PENDING: order_counts['status_payment_pending'],
-                        Order.STATUS_SUBMITTED: order_counts['status_submitted'],
+                        'cart': order_counts['status_cart'],
+                        'payment_pending': order_counts['status_payment_pending'],
+                        'submitted': order_counts['status_submitted'],
                     },
                     'payment_status': {
-                        Order.PAYMENT_PENDING: order_counts['payment_pending'],
-                        Order.PAYMENT_PAID: order_counts['payment_paid'],
-                        Order.PAYMENT_FAILED: order_counts['payment_failed'],
+                        'pending': order_counts['payment_pending'],
+                        'paid': order_counts['payment_paid'],
+                        'failed': order_counts['payment_failed'],
                     },
                     'fulfillment_status': {
-                        Order.FULFILLMENT_PENDING: order_counts['fulfillment_pending'],
-                        Order.FULFILLMENT_PROCESSING: order_counts['fulfillment_processing'],
-                        Order.FULFILLMENT_COMPLETED: order_counts['fulfillment_completed'],
-                        Order.FULFILLMENT_CANCELLED: order_counts['fulfillment_cancelled'],
+                        'pending': order_counts['fulfillment_pending'],
+                        'processing': order_counts['fulfillment_processing'],
+                        'completed': order_counts['fulfillment_completed'],
+                        'cancelled': order_counts['fulfillment_cancelled'],
                     },
                 },
             }
