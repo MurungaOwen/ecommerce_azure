@@ -20,7 +20,7 @@ All API routes are prefixed with `/api/`.
 
 ## Database Configuration
 
-The app uses SQLite in development. When `DEBUG` is `False`, configure PostgreSQL with:
+The app uses SQLite in development. Set `DEBUG=True` locally to keep SQLite. When `DEBUG` is `False` and PostgreSQL environment variables are provided, the app connects to PostgreSQL:
 
 ```
 POSTGRES_DB=your_db_name

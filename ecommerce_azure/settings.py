@@ -24,7 +24,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = 'django-insecure-z02)^x6-k&c7hd2ei&$*p8(e=(_w&zd219)a%m3@z&9a9v7(*r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() in {'true', '1', 'yes'}
+DEBUG = os.getenv('DEBUG', 'false').lower() in {'true', '1', 'yes'}
 
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
@@ -83,7 +83,13 @@ WSGI_APPLICATION = 'ecommerce_azure.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-if DEBUG:
+use_postgres = not DEBUG and (
+    os.getenv('POSTGRES_DB')
+    or os.getenv('POSTGRES_HOST')
+    or os.getenv('POSTGRES_USER')
+)
+
+if not use_postgres:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

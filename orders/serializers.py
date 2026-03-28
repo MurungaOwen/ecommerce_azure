@@ -30,7 +30,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_total(self, obj):
         total = Decimal('0.00')
-        for item in obj.items.all():
+        items = getattr(obj, '_prefetched_objects_cache', {}).get('items')
+        if items is None:
+            items = obj.items.all()
+        for item in items:
             total += item.unit_price * item.quantity
         return total
 
