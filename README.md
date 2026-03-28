@@ -1,5 +1,10 @@
 # ecommerce_azure
-
+This is a sample ecommerce platform that is cloud Native
+## Features of Azure used
+- App service
+- Ai service for indexing and semantic product search
+- Azure service bus
+- 
 ## API Endpoints
 
 All API routes are prefixed with `/api/`.
